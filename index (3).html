@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tabla de Censo y Gráfica - DANE</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Roboto:wght@300;400;500&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #f0f4f8;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    .header {
+      background: linear-gradient(135deg, #003580 0%, #0055a5 60%, #0077cc 100%);
+      color: white;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 4px 12px rgba(0,53,128,0.3);
+    }
+    .header-logo {
+      width: 48px; height: 48px;
+      background: white;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: #003580; font-size: 14px;
+    }
+    .header h1 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1.4rem; font-weight: 700; letter-spacing: 0.5px;
+    }
+    .header p { font-size: 0.85rem; opacity: 0.85; margin-top: 2px; }
+
+    /* TABS */
+    .tabs-bar {
+      background: white;
+      border-bottom: 3px solid #e2e8f0;
+      display: flex;
+      padding: 0 32px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .tab-btn {
+      padding: 16px 28px;
+      border: none; background: none; cursor: pointer;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.95rem; font-weight: 600;
+      color: #64748b;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -3px;
+      transition: all 0.2s ease;
+    }
+    .tab-btn:hover { color: #0055a5; }
+    .tab-btn.active {
+      color: #003580;
+      border-bottom-color: #003580;
+    }
+
+    /* MAIN CONTENT */
+    .main {
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 0 24px;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* TOTAL BADGE */
+    .total-badge {
+      display: flex; align-items: center; gap: 12px;
+      background: white;
+      border-left: 5px solid #003580;
+      padding: 14px 24px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .total-badge .label {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600; font-size: 1rem; color: #475569;
+    }
+    .total-badge .value {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 700; font-size: 1.3rem; color: #003580;
+      margin-left: auto;
+    }
+
+    /* TABLE */
+    .table-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      margin-bottom: 36px;
+    }
+    .table-card h2 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1rem; font-weight: 700;
+      padding: 16px 20px;
+      background: #003580; color: white;
+      letter-spacing: 0.5px;
+    }
+    table {
+      width: 100%; border-collapse: collapse;
+    }
+    thead tr { background: #e8f0fb; }
+    thead th {
+      padding: 12px 16px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.82rem; font-weight: 700;
+      color: #003580; text-align: center;
+      border-bottom: 2px solid #c7d9f5;
+      text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    tbody tr { transition: background 0.15s; }
+    tbody tr:hover { background: #f1f6ff; }
+    tbody td {
+      padding: 11px 16px;
+      font-size: 0.9rem; text-align: center;
+      border-bottom: 1px solid #e9eef5;
+      color: #334155;
+    }
+    .var-cell {
+      font-weight: 700; color: #003580;
+      background: #f7f9ff;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .llenar-cell {
+      font-weight: 600; color: #0077cc;
+    }
+    .freq-cell {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.88rem;
+    }
+    .pct-cell { color: #475569; }
+
+    /* CHART */
+    .chart-card {
+      background: white;
+      border-radius: 12px;
+      padding: 28px 24px 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .chart-card h2 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1rem; font-weight: 700;
+      color: #003580; margin-bottom: 20px;
+      text-align: center; letter-spacing: 0.3px;
+    }
+    .chart-wrap { position: relative; height: 340px; }
+
+    /* FOOTER */
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      border-top: 1px solid #e2e8f0;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ENCABEZADO -->
+<header class="header">
+  <div class="header-logo">DANE</div>
+  <div>
+    <h1>Tabla de Censo y Gráfica</h1>
+    <p>Resultados Censo Nacional de Población y Vivienda — Colombia</p>
+  </div>
+</header>
+
+<!-- PESTAÑAS -->
+<div class="tabs-bar">
+  <button class="tab-btn active" onclick="showTab('cuantos')">Cuántos somos</button>
+  <button class="tab-btn" onclick="showTab('donde')">Dónde estamos</button>
+  <button class="tab-btn" onclick="showTab('como')">Cómo vivimos</button>
+</div>
+
+<div class="main">
+
+  <!-- ===== PESTAÑA 1: CUÁNTOS SOMOS ===== -->
+  <div class="tab-content active" id="tab-cuantos">
+
+    <div class="total-badge">
+      <span class="label">Total de personas censadas</span>
+      <span class="value">43.835.324</span>
+    </div>
+
+    <div class="table-card">
+      <h2>📊 Distribución de la Población</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Variables</th>
+            <th>Etiqueta</th>
+            <th>Frecuencia</th>
+            <th>Frecuencia Porcentual</th>
+            <th>Llenar</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="var-cell" rowspan="2">Género</td>
+            <td>Hombre</td>
+            <td class="freq-cell">22.443.686</td>
+            <td class="pct-cell">51,20%</td>
+            <td class="llenar-cell">51.2%</td>
+          </tr>
+          <tr>
+            <td>Mujer</td>
+            <td class="freq-cell">21.391.638</td>
+            <td class="pct-cell">48,80%</td>
+            <td class="llenar-cell">48.8%</td>
+          </tr>
+          <tr>
+            <td class="var-cell" rowspan="3">Edades Hombres</td>
+            <td>0 – 14</td>
+            <td class="freq-cell">13.457.444</td>
+            <td class="pct-cell">30,70%</td>
+            <td class="llenar-cell">30.7%</td>
+          </tr>
+          <tr>
+            <td>15 – 65</td>
+            <td class="freq-cell">27.616.254</td>
+            <td class="pct-cell">63,00%</td>
+            <td class="llenar-cell">63%</td>
+          </tr>
+          <tr>
+            <td>&gt;= 65</td>
+            <td class="freq-cell">2.761.625</td>
+            <td class="pct-cell">6,30%</td>
+            <td class="llenar-cell">6.3%</td>
+          </tr>
+          <tr>
+            <td class="var-cell" rowspan="3">Edades Mujeres</td>
+            <td>0 – 14</td>
+            <td class="freq-cell">9.906.783</td>
+            <td class="pct-cell">22,60%</td>
+            <td class="llenar-cell">22.6%</td>
+          </tr>
+          <tr>
+            <td>15 – 65</td>
+            <td class="freq-cell">29.895.691</td>
+            <td class="pct-cell">68,20%</td>
+            <td class="llenar-cell">68.2%</td>
+          </tr>
+          <tr>
+            <td>&gt;= 65</td>
+            <td class="freq-cell">3.989.014</td>
+            <td class="pct-cell">9,10%</td>
+            <td class="llenar-cell">9.1%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="chart-card">
+      <h2>Cuántos somos — Frecuencia Porcentual (%)</h2>
+      <div class="chart-wrap">
+        <canvas id="chartCuantos"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PESTAÑA 2: DÓNDE ESTAMOS ===== -->
+  <div class="tab-content" id="tab-donde">
+
+    <div class="total-badge">
+      <span class="label">Total de personas censadas</span>
+      <span class="value">43.835.324</span>
+    </div>
+
+    <div class="table-card">
+      <h2>📍 Distribución Geográfica de la Población</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Variables</th>
+            <th>Etiqueta</th>
+            <th>Frecuencia</th>
+            <th>Frecuencia Porcentual</th>
+            <th>Llenar</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="var-cell" rowspan="3">Distribución de Población</td>
+            <td>C. Municipal</td>
+            <td class="freq-cell">33.797.035</td>
+            <td class="pct-cell">77,10%</td>
+            <td class="llenar-cell">77.1%</td>
+          </tr>
+          <tr>
+            <td>Centros Poblados</td>
+            <td class="freq-cell">3.112.308</td>
+            <td class="pct-cell">7,10%</td>
+            <td class="llenar-cell">7.1%</td>
+          </tr>
+          <tr>
+            <td>Rural</td>
+            <td class="freq-cell">6.925.981</td>
+            <td class="pct-cell">15,80%</td>
+            <td class="llenar-cell">15.8%</td>
+          </tr>
+          <tr>
+            <td class="var-cell" rowspan="3">Lugar de Nacimiento</td>
+            <td>Colombia</td>
+            <td class="freq-cell">42.344.923</td>
+            <td class="pct-cell">96,60%</td>
+            <td class="llenar-cell">96.6%</td>
+          </tr>
+          <tr>
+            <td>Otro País</td>
+            <td class="freq-cell">964.377</td>
+            <td class="pct-cell">2,20%</td>
+            <td class="llenar-cell">2.2%</td>
+          </tr>
+          <tr>
+            <td>Sin Información</td>
+            <td class="freq-cell">526.024</td>
+            <td class="pct-cell">1,20%</td>
+            <td class="llenar-cell">1.2%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="chart-card">
+      <h2>Dónde estamos — Frecuencia Porcentual (%)</h2>
+      <div class="chart-wrap">
+        <canvas id="chartDonde"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PESTAÑA 3: CÓMO VIVIMOS ===== -->
+  <div class="tab-content" id="tab-como">
+
+    <div class="total-badge">
+      <span class="label">Total de personas censadas</span>
+      <span class="value">43.835.324</span>
+    </div>
+
+    <div class="table-card">
+      <h2>🏠 Condiciones de Vida</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Variables</th>
+            <th>Etiqueta</th>
+            <th>Frecuencia</th>
+            <th>Frecuencia Porcentual</th>
+            <th>Llenar</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="var-cell" rowspan="6">Servicios Públicos</td>
+            <td>E. Eléctrica</td>
+            <td class="freq-cell">42.213.417</td>
+            <td class="pct-cell">96,30%</td>
+            <td class="llenar-cell">96.3%</td>
+          </tr>
+          <tr>
+            <td>Acueducto</td>
+            <td class="freq-cell">37.873.720</td>
+            <td class="pct-cell">86,40%</td>
+            <td class="llenar-cell">86.4%</td>
+          </tr>
+          <tr>
+            <td>Alcantarillado</td>
+            <td class="freq-cell">33.577.858</td>
+            <td class="pct-cell">76,60%</td>
+            <td class="llenar-cell">76.6%</td>
+          </tr>
+          <tr>
+            <td>Gas</td>
+            <td class="freq-cell">29.281.996</td>
+            <td class="pct-cell">66,80%</td>
+            <td class="llenar-cell">66.8%</td>
+          </tr>
+          <tr>
+            <td>Aseo</td>
+            <td class="freq-cell">35.769.624</td>
+            <td class="pct-cell">81,60%</td>
+            <td class="llenar-cell">81.6%</td>
+          </tr>
+          <tr>
+            <td>Internet</td>
+            <td class="freq-cell">19.024.531</td>
+            <td class="pct-cell">43,40%</td>
+            <td class="llenar-cell">43.4%</td>
+          </tr>
+          <tr>
+            <td class="var-cell" rowspan="5">N.º Personas en el Hogar</td>
+            <td>1 persona</td>
+            <td class="freq-cell">8.109.535</td>
+            <td class="pct-cell">18,50%</td>
+            <td class="llenar-cell">18.5%</td>
+          </tr>
+          <tr>
+            <td>2 personas</td>
+            <td class="freq-cell">9.512.265</td>
+            <td class="pct-cell">21,70%</td>
+            <td class="llenar-cell">21.7%</td>
+          </tr>
+          <tr>
+            <td>3 personas</td>
+            <td class="freq-cell">10.169.795</td>
+            <td class="pct-cell">23,20%</td>
+            <td class="llenar-cell">23.2%</td>
+          </tr>
+          <tr>
+            <td>4 personas</td>
+            <td class="freq-cell">8.547.888</td>
+            <td class="pct-cell">19,50%</td>
+            <td class="llenar-cell">19.5%</td>
+          </tr>
+          <tr>
+            <td>5 personas</td>
+            <td class="freq-cell">7.364.334</td>
+            <td class="pct-cell">16,80%</td>
+            <td class="llenar-cell">16.8%</td>
+          </tr>
+          <tr>
+            <td class="var-cell" rowspan="2">Jefatura del Hogar</td>
+            <td>Hombre</td>
+            <td class="freq-cell">25.994.347</td>
+            <td class="pct-cell">59,30%</td>
+            <td class="llenar-cell">59.3%</td>
+          </tr>
+          <tr>
+            <td>Mujer</td>
+            <td class="freq-cell">17.840.977</td>
+            <td class="pct-cell">40,70%</td>
+            <td class="llenar-cell">40.7%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="chart-card">
+      <h2>Cómo vivimos — Frecuencia Porcentual (%)</h2>
+      <div class="chart-wrap">
+        <canvas id="chartComo"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<footer>
+  Fuente: DANE — Censo Nacional de Población y Vivienda (CNPV) &nbsp;|&nbsp; Evidencia SENA
+</footer>
+
+<script>
+  /* ---- TAB LOGIC ---- */
+  function showTab(name) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+    // Render charts lazily
+    if (name === 'cuantos' && !window._c1) renderChartCuantos();
+    if (name === 'donde'  && !window._c2) renderChartDonde();
+    if (name === 'como'   && !window._c3) renderChartComo();
+  }
+
+  const BLUE_PALETTE = [
+    '#003580','#0055a5','#0077cc','#3399e6',
+    '#66b3f5','#99ccff','#b3d9ff','#cce6ff'
+  ];
+
+  /* ---- CHART 1: CUÁNTOS SOMOS ---- */
+  function renderChartCuantos() {
+    window._c1 = true;
+    const ctx = document.getElementById('chartCuantos').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Hombre','Mujer','H 0-14','H 15-65','H >=65','M 0-14','M 15-65','M >=65'],
+        datasets: [{
+          label: 'Frecuencia Porcentual (%)',
+          data: [51.2, 48.8, 30.7, 63.0, 6.3, 22.6, 68.2, 9.1],
+          backgroundColor: BLUE_PALETTE,
+          borderRadius: 6,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: { callbacks: { label: ctx => ctx.parsed.y + '%' } }
+        },
+        scales: {
+          y: {
+            beginAtZero: true, max: 80,
+            ticks: { callback: v => v + '%' },
+            grid: { color: '#e9eef5' }
+          },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  /* ---- CHART 2: DÓNDE ESTAMOS ---- */
+  function renderChartDonde() {
+    window._c2 = true;
+    const ctx = document.getElementById('chartDonde').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['C. Municipal','C. Poblados','Rural','Colombia','Otro País','Sin Info'],
+        datasets: [{
+          label: 'Frecuencia Porcentual (%)',
+          data: [77.1, 7.1, 15.8, 96.6, 2.2, 1.2],
+          backgroundColor: BLUE_PALETTE,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: { callbacks: { label: ctx => ctx.parsed.y + '%' } }
+        },
+        scales: {
+          y: {
+            beginAtZero: true, max: 110,
+            ticks: { callback: v => v + '%' },
+            grid: { color: '#e9eef5' }
+          },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  /* ---- CHART 3: CÓMO VIVIMOS ---- */
+  function renderChartComo() {
+    window._c3 = true;
+    const ctx = document.getElementById('chartComo').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: [
+          'E.Eléctrica','Acueducto','Alcantarillado','Gas','Aseo','Internet',
+          '1 pers.','2 pers.','3 pers.','4 pers.','5 pers.',
+          'Jefe Hombre','Jefe Mujer'
+        ],
+        datasets: [{
+          label: 'Frecuencia Porcentual (%)',
+          data: [96.3, 86.4, 76.6, 66.8, 81.6, 43.4, 18.5, 21.7, 23.2, 19.5, 16.8, 59.3, 40.7],
+          backgroundColor: [
+            '#003580','#0055a5','#0077cc','#3399e6','#66b3f5','#99ccff',
+            '#003580','#0055a5','#0077cc','#3399e6','#66b3f5',
+            '#003580','#0055a5'
+          ],
+          borderRadius: 5
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: { callbacks: { label: ctx => ctx.parsed.y + '%' } }
+        },
+        scales: {
+          y: {
+            beginAtZero: true, max: 110,
+            ticks: { callback: v => v + '%' },
+            grid: { color: '#e9eef5' }
+          },
+          x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+        }
+      }
+    });
+  }
+
+  /* Render first tab chart on load */
+  window.addEventListener('load', renderChartCuantos);
+</script>
+</body>
+</html>
